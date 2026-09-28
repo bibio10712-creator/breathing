@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4-7-8 呼吸法練習 (含背景音樂)</title>
+    <title>4-7-8 呼吸法練習 (線上優化版)</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -26,7 +26,7 @@
         }
         h1 {
             font-size: 24px;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             color: #2d5a27;
         }
         .circle-outer {
@@ -106,9 +106,6 @@
     <button id="startBtn">開始練習</button>
 </div>
 
-<!-- 這裡加入了線上放鬆背景音樂 (大自然水流與鳥鳴聲)，設定為循環播放 -->
-<audio id="bgMusic" src="https://mixkit.co" loop></audio>
-
 <script>
     let isRunning = false;
     let countdownInterval;
@@ -116,15 +113,16 @@
     let timeLeft = 0;
     let cycleCount = 0;
 
+    // 音訊系統變數
+    let audioCtx = null;
+    let backgroundOsc = null;
+    let backgroundGain = null;
+
     const statusText = document.getElementById('status');
     const timerText = document.getElementById('timer');
     const cyclesText = document.getElementById('cycles');
     const startBtn = document.getElementById('startBtn');
     const circle = document.getElementById('circle');
-    const bgMusic = document.getElementById('bgMusic');
-
-    // 調整音樂音量 (0.0 到 1.0 之間，0.3 代表 30% 音量，聽起來比較舒服不刺耳)
-    bgMusic.volume = 0.3;
 
     const steps = [
         { name: '吸氣', duration: 4, className: 'inhale' },
@@ -133,12 +131,67 @@
     ];
 
     startBtn.addEventListener('click', function() {
+        // 關鍵修正：必須在點擊按鈕的瞬間「首度解鎖/建立」AudioContext
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        // 如果狀態被瀏覽器掛起（suspended），強制將其激活
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
         if (isRunning) {
             stopBreathing();
         } else {
             startBreathing();
         }
     });
+
+    // 播放換氣時的「咚」提示音
+    function playChime() {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        osc.type = 'triangle'; 
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime); 
+        
+        gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4); 
+        
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.4);
+    }
+
+    // 啟動冥想背景低頻環境音
+    function startBackgroundAmbient() {
+        if (!audioCtx) return;
+        
+        backgroundOsc = audioCtx.createOscillator();
+        backgroundGain = audioCtx.createGain();
+        
+        backgroundOsc.type = 'sine'; 
+        backgroundOsc.frequency.setValueAtTime(130.81, audioCtx.currentTime); // C3 低音
+        
+        backgroundGain.gain.setValueAtTime(0.05, audioCtx.currentTime); 
+        
+        backgroundOsc.connect(backgroundGain);
+        backgroundGain.connect(audioCtx.destination);
+        backgroundOsc.start();
+    }
+
+    function stopBackgroundAmbient() {
+        if (backgroundOsc) {
+            try {
+                backgroundOsc.stop();
+            } catch(e) {}
+            backgroundOsc.disconnect();
+            backgroundOsc = null;
+        }
+    }
 
     function startBreathing() {
         isRunning = true;
@@ -147,11 +200,7 @@
         cyclesText.innerText = cycleCount;
         currentStep = 0;
         
-        // 播放背景音樂
-        bgMusic.play().catch(error => {
-            console.log("音樂播放被瀏覽器阻擋，需點擊互動後才能播放:", error);
-        });
-
+        startBackgroundAmbient();
         runStep();
     }
 
@@ -177,6 +226,8 @@
         timerText.innerText = timeLeft + ' 秒';
         circle.className = 'circle-outer ' + step.className;
 
+        playChime();
+
         countdownInterval = setInterval(() => {
             timeLeft--;
             if (timeLeft <= 0) {
@@ -197,9 +248,7 @@
         timerText.innerText = '-';
         circle.className = 'circle-outer';
         
-        // 暫停音樂並重置時間
-        bgMusic.pause();
-        bgMusic.currentTime = 0;
+        stopBackgroundAmbient();
     }
 </script>
 
