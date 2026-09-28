@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4-7-8 呼吸法練習 (線上優化版)</title>
+    <title>4-7-8 呼吸法練習 (冥想音樂版)</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -106,6 +106,9 @@
     <button id="startBtn">開始練習</button>
 </div>
 
+<!-- 這裡引入一首無版權的高質感冥想背景音樂，並設定為 loop (循環播放) -->
+<audio id="meditationMusic" src="https://soundhelix.com" loop></audio>
+
 <script>
     let isRunning = false;
     let countdownInterval;
@@ -113,16 +116,15 @@
     let timeLeft = 0;
     let cycleCount = 0;
 
-    // 音訊系統變數
-    let audioCtx = null;
-    let backgroundOsc = null;
-    let backgroundGain = null;
-
     const statusText = document.getElementById('status');
     const timerText = document.getElementById('timer');
     const cyclesText = document.getElementById('cycles');
     const startBtn = document.getElementById('startBtn');
     const circle = document.getElementById('circle');
+    const meditationMusic = document.getElementById('meditationMusic');
+
+    // 調整冥想音樂音量（0.4 代表 40% 音量，聽起來溫和柔順）
+    meditationMusic.volume = 0.4;
 
     const steps = [
         { name: '吸氣', duration: 4, className: 'inhale' },
@@ -131,67 +133,12 @@
     ];
 
     startBtn.addEventListener('click', function() {
-        // 關鍵修正：必須在點擊按鈕的瞬間「首度解鎖/建立」AudioContext
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        
-        // 如果狀態被瀏覽器掛起（suspended），強制將其激活
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
-
         if (isRunning) {
             stopBreathing();
         } else {
             startBreathing();
         }
     });
-
-    // 播放換氣時的「咚」提示音
-    function playChime() {
-        if (!audioCtx) return;
-        const osc = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        
-        osc.type = 'triangle'; 
-        osc.frequency.setValueAtTime(440, audioCtx.currentTime); 
-        
-        gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4); 
-        
-        osc.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.4);
-    }
-
-    // 啟動冥想背景低頻環境音
-    function startBackgroundAmbient() {
-        if (!audioCtx) return;
-        
-        backgroundOsc = audioCtx.createOscillator();
-        backgroundGain = audioCtx.createGain();
-        
-        backgroundOsc.type = 'sine'; 
-        backgroundOsc.frequency.setValueAtTime(130.81, audioCtx.currentTime); // C3 低音
-        
-        backgroundGain.gain.setValueAtTime(0.05, audioCtx.currentTime); 
-        
-        backgroundOsc.connect(backgroundGain);
-        backgroundGain.connect(audioCtx.destination);
-        backgroundOsc.start();
-    }
-
-    function stopBackgroundAmbient() {
-        if (backgroundOsc) {
-            try {
-                backgroundOsc.stop();
-            } catch(e) {}
-            backgroundOsc.disconnect();
-            backgroundOsc = null;
-        }
-    }
 
     function startBreathing() {
         isRunning = true;
@@ -200,7 +147,11 @@
         cyclesText.innerText = cycleCount;
         currentStep = 0;
         
-        startBackgroundAmbient();
+        // 播放冥想音樂
+        meditationMusic.play().catch(error => {
+            console.log("音樂播放被阻擋，已透過點擊互動解鎖:", error);
+        });
+
         runStep();
     }
 
@@ -226,8 +177,6 @@
         timerText.innerText = timeLeft + ' 秒';
         circle.className = 'circle-outer ' + step.className;
 
-        playChime();
-
         countdownInterval = setInterval(() => {
             timeLeft--;
             if (timeLeft <= 0) {
@@ -248,7 +197,9 @@
         timerText.innerText = '-';
         circle.className = 'circle-outer';
         
-        stopBackgroundAmbient();
+        // 停止音樂並倒帶
+        meditationMusic.pause();
+        meditationMusic.currentTime = 0;
     }
 </script>
 
