@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4-7-8 呼吸法練習 (含背景音樂)</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f0f7f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            max-width: 400px;
+            width: 90%;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 30px;
+            color: #2d5a27;
+        }
+        .circle-outer {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: #e2f0d9;
+            margin: 0 auto 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            transition: transform 1s ease-in-out;
+        }
+        .circle-inner {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: #a3d9c9;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            transition: all 1s ease-in-out;
+        }
+        #status {
+            font-size: 28px;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #timer {
+            font-size: 20px;
+            opacity: 0.9;
+        }
+        #cycle-count {
+            margin-bottom: 20px;
+            font-size: 16px;
+            color: #666;
+        }
+        button {
+            background-color: #2d5a27;
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background 0.3s;
+            box-shadow: 0 4px 15px rgba(45,90,39,0.2);
+        }
+        button:hover {
+            background-color: #1e3d1a;
+        }
+        .inhale { transform: scale(1.15); }
+        .inhale .circle-inner { background-color: #52b788; }
+        .hold { transform: scale(1.15); }
+        .hold .circle-inner { background-color: #2d6a4f; }
+        .exhale { transform: scale(0.95); }
+        .exhale .circle-inner { background-color: #74c69d; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>4-7-8 呼吸法練習</h1>
+    
+    <div class="circle-outer" id="circle">
+        <div class="circle-inner">
+            <div id="status">準備</div>
+            <div id="timer">-</div>
+        </div>
+    </div>
+
+    <div id="cycle-count">已完成次數：<span id="cycles">0</span> / 4</div>
+    <button id="startBtn">開始練習</button>
+</div>
+
+<!-- 這裡加入了線上放鬆背景音樂 (大自然水流與鳥鳴聲)，設定為循環播放 -->
+<audio id="bgMusic" src="https://mixkit.co" loop></audio>
+
+<script>
+    let isRunning = false;
+    let countdownInterval;
+    let currentStep = 0; 
+    let timeLeft = 0;
+    let cycleCount = 0;
+
+    const statusText = document.getElementById('status');
+    const timerText = document.getElementById('timer');
+    const cyclesText = document.getElementById('cycles');
+    const startBtn = document.getElementById('startBtn');
+    const circle = document.getElementById('circle');
+    const bgMusic = document.getElementById('bgMusic');
+
+    // 調整音樂音量 (0.0 到 1.0 之間，0.3 代表 30% 音量，聽起來比較舒服不刺耳)
+    bgMusic.volume = 0.3;
+
+    const steps = [
+        { name: '吸氣', duration: 4, className: 'inhale' },
+        { name: '憋氣', duration: 7, className: 'hold' },
+        { name: '吐氣', duration: 8, className: 'exhale' }
+    ];
+
+    startBtn.addEventListener('click', function() {
+        if (isRunning) {
+            stopBreathing();
+        } else {
+            startBreathing();
+        }
+    });
+
+    function startBreathing() {
+        isRunning = true;
+        startBtn.innerText = '停止練習';
+        cycleCount = 0;
+        cyclesText.innerText = cycleCount;
+        currentStep = 0;
+        
+        // 播放背景音樂
+        bgMusic.play().catch(error => {
+            console.log("音樂播放被瀏覽器阻擋，需點擊互動後才能播放:", error);
+        });
+
+        runStep();
+    }
+
+    function runStep() {
+        if (!isRunning) return;
+
+        if (currentStep > 2) {
+            currentStep = 0;
+            cycleCount++;
+            cyclesText.innerText = cycleCount;
+            
+            if (cycleCount >= 4) {
+                alert('恭喜完成 4 輪 4-7-8 呼吸練習！');
+                stopBreathing();
+                return;
+            }
+        }
+
+        const step = steps[currentStep];
+        timeLeft = step.duration;
+        
+        statusText.innerText = step.name;
+        timerText.innerText = timeLeft + ' 秒';
+        circle.className = 'circle-outer ' + step.className;
+
+        countdownInterval = setInterval(() => {
+            timeLeft--;
+            if (timeLeft <= 0) {
+                clearInterval(countdownInterval);
+                currentStep++;
+                runStep(); 
+            } else {
+                timerText.innerText = timeLeft + ' 秒';
+            }
+        }, 1000);
+    }
+
+    function stopBreathing() {
+        isRunning = false;
+        clearInterval(countdownInterval);
+        startBtn.innerText = '開始練習';
+        statusText.innerText = '準備';
+        timerText.innerText = '-';
+        circle.className = 'circle-outer';
+        
+        // 暫停音樂並重置時間
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
+    }
+</script>
+
+</body>
+</html>
