@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4-7-8 呼吸法練習 (冥想音樂版)</title>
+    <title>4-7-8 呼吸法練習</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -26,9 +26,10 @@
         }
         h1 {
             font-size: 24px;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
             color: #2d5a27;
         }
+        /* 呼吸動畫圓圈 */
         .circle-outer {
             width: 200px;
             height: 200px;
@@ -82,6 +83,7 @@
         button:hover {
             background-color: #1e3d1a;
         }
+        /* 呼吸狀態的視覺視覺動態樣式 */
         .inhale { transform: scale(1.15); }
         .inhale .circle-inner { background-color: #52b788; }
         .hold { transform: scale(1.15); }
@@ -103,16 +105,13 @@
     </div>
 
     <div id="cycle-count">已完成次數：<span id="cycles">0</span> / 4</div>
-    <button id="startBtn">開始練習</button>
+    <button id="startBtn" onclick="toggleTimer()">開始練習</button>
 </div>
-
-<!-- 這裡引入一首無版權的高質感冥想背景音樂，並設定為 loop (循環播放) -->
-<audio id="meditationMusic" src="https://soundhelix.com" loop></audio>
 
 <script>
     let isRunning = false;
     let countdownInterval;
-    let currentStep = 0; 
+    let currentStep = 0; // 0:吸氣, 1:憋氣, 2:吐氣
     let timeLeft = 0;
     let cycleCount = 0;
 
@@ -121,10 +120,6 @@
     const cyclesText = document.getElementById('cycles');
     const startBtn = document.getElementById('startBtn');
     const circle = document.getElementById('circle');
-    const meditationMusic = document.getElementById('meditationMusic');
-
-    // 調整冥想音樂音量（0.4 代表 40% 音量，聽起來溫和柔順）
-    meditationMusic.volume = 0.4;
 
     const steps = [
         { name: '吸氣', duration: 4, className: 'inhale' },
@@ -132,40 +127,36 @@
         { name: '吐氣', duration: 8, className: 'exhale' }
     ];
 
-    startBtn.addEventListener('click', function() {
+    function toggleTimer() {
         if (isRunning) {
-            stopBreathing();
+            resetInference();
         } else {
-            startBreathing();
+            startInference();
         }
-    });
+    }
 
-    function startBreathing() {
+    function startInference() {
         isRunning = true;
         startBtn.innerText = '停止練習';
         cycleCount = 0;
         cyclesText.innerText = cycleCount;
         currentStep = 0;
-        
-        // 播放冥想音樂
-        meditationMusic.play().catch(error => {
-            console.log("音樂播放被阻擋，已透過點擊互動解鎖:", error);
-        });
-
         runStep();
     }
 
     function runStep() {
         if (!isRunning) return;
 
+        // 如果跑完一輪（吸、憋、吐），重置回吸氣，並增加次數
         if (currentStep > 2) {
             currentStep = 0;
             cycleCount++;
             cyclesText.innerText = cycleCount;
             
+            // 達到 4 次後自動停止（可依需求修改次數）
             if (cycleCount >= 4) {
                 alert('恭喜完成 4 輪 4-7-8 呼吸練習！');
-                stopBreathing();
+                resetInference();
                 return;
             }
         }
@@ -173,33 +164,33 @@
         const step = steps[currentStep];
         timeLeft = step.duration;
         
+        // 更新文字與倒數
         statusText.innerText = step.name;
-        timerText.innerText = timeLeft + ' 秒';
+        timerText.innerText = `${timeLeft} 秒`;
+        
+        // 更新圓圈動畫樣式
         circle.className = 'circle-outer ' + step.className;
 
+        // 開始每秒倒數
         countdownInterval = setInterval(() => {
             timeLeft--;
             if (timeLeft <= 0) {
                 clearInterval(countdownInterval);
                 currentStep++;
-                runStep(); 
+                runStep(); // 進入下一個步驟
             } else {
-                timerText.innerText = timeLeft + ' 秒';
+                timerText.innerText = `${timeLeft} 秒`;
             }
         }, 1000);
     }
 
-    function stopBreathing() {
+    function resetInference() {
         isRunning = false;
         clearInterval(countdownInterval);
         startBtn.innerText = '開始練習';
         statusText.innerText = '準備';
         timerText.innerText = '-';
         circle.className = 'circle-outer';
-        
-        // 停止音樂並倒帶
-        meditationMusic.pause();
-        meditationMusic.currentTime = 0;
     }
 </script>
 
